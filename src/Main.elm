@@ -186,7 +186,7 @@ viewParagraph currentParagraph goalParagraph =
         indexOfWrong =
             findIndex (String.toList currentParagraph) checkChar
 
-        indexOfWrong2 =
+        correctWrongBorder =
             if indexOfWrong == -1 then
                 String.length currentParagraph
 
@@ -194,12 +194,12 @@ viewParagraph currentParagraph goalParagraph =
                 indexOfWrong
 
         correctText =
-            String.slice 0 indexOfWrong2 currentParagraph
+            String.slice 0 correctWrongBorder currentParagraph
 
         wrongText =
-            String.slice indexOfWrong2 (String.length currentParagraph) goalParagraph
+            String.slice correctWrongBorder (String.length currentParagraph) goalParagraph
     in
-    p [ class "border m-auto w-50" ] [ span [] [ text ("indexOfWrong2 " ++ String.fromInt indexOfWrong2), br [] [] ], span [ style "background-color" "green" ] [ text correctText ], span [ style "background-color" "red" ] [ text wrongText ], span [] [ text remainingText ] ]
+    p [ class "border m-auto w-50" ] [ span [ style "background-color" "lime" ] [ text correctText ], span [ style "background-color" "red" ] [ text wrongText ], span [] [ text remainingText ] ]
 
 
 findIndex : List a -> (a -> Int -> Bool) -> Int
@@ -224,18 +224,6 @@ doFindIndex list fn curIndex =
 
         Nothing ->
             -1
-
-
-
--- splitOnCorrect : Char -> (String, String) -> (String, String)
--- splitOnCorrect charToCheck (correct, wrong, remaining) =
--- 	case remaining of
--- 		Just (nextChar, newRemaining) ->
--- 			if nextChar == charToCheck then
--- 				(correct ++ (fromChar nextChar), wrong, newRemaining)
--- 			else
--- 				(correct, wrong ++ (fromChar nextChar))
--- 		Nothing ->
 
 
 viewGameStatus : Model -> Html Msg
