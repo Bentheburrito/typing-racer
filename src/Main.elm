@@ -1,11 +1,12 @@
 module Main exposing (..)
 
 import Bootstrap.CDN as CDN
+import Bootstrap.Grid exposing (container)
 import Browser
 import Browser.Dom as Dom
 import Debug exposing (toString)
-import Html exposing (Html, br, button, div, h1, h2, h3, p, span, text, textarea)
-import Html.Attributes exposing (class, cols, disabled, id, placeholder, rows, style, value)
+import Html exposing (Html, a, b, br, button, div, h1, h2, h3, p, span, text, textarea)
+import Html.Attributes exposing (class, cols, disabled, href, id, placeholder, rows, style, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode exposing (field, string)
@@ -19,6 +20,7 @@ import Time
 -- MAIN
 
 
+main : Program () Model Msg
 main =
     Browser.element
         { init = init
@@ -156,7 +158,7 @@ view model =
 
 viewPlayArea : Model -> Html Msg
 viewPlayArea model =
-    div [ class "text-center p-4" ]
+    container [ class "text-center p-4" ]
         [ CDN.stylesheet
         , h1 [] [ text "Typing Race" ]
         , h2 [] [ text ("Welcome, " ++ model.playerName ++ "!") ]
@@ -170,7 +172,12 @@ viewPlayArea model =
         , br [] []
         , button [ onClick StartGame, disabled (List.member model.gameStatus [ InProgress, AwaitingQuote ]) ] [ text "Start" ]
         , h3 [] [ viewGameStatus model ]
-        , text ("WPM: " ++ getWPM model)
+        , text ("Benchmark WPM: " ++ getBenchmarkWPM model)
+        , br [] []
+        , text ("Raw WPM: " ++ getRawWPM model)
+        , br [] []
+        , br [] []
+        , viewWPMInfo
         ]
 
 
@@ -199,7 +206,11 @@ viewParagraph currentParagraph goalParagraph =
         wrongText =
             String.slice correctWrongBorder (String.length currentParagraph) goalParagraph
     in
-    p [ class "border m-auto w-50" ] [ span [ style "background-color" "lime" ] [ text correctText ], span [ style "background-color" "red" ] [ text wrongText ], span [] [ text remainingText ] ]
+    p [ class "border m-auto w-50" ]
+        [ span [ style "background-color" "lime" ] [ text correctText ]
+        , span [ style "background-color" "red" ] [ text wrongText ]
+        , span [] [ text remainingText ]
+        ]
 
 
 findIndex : List a -> (a -> Int -> Bool) -> Int
@@ -230,7 +241,9 @@ viewGameStatus : Model -> Html Msg
 viewGameStatus model =
     text
         (if model.gameStatus == Completed then
-            "You finished! 🏁 It took you " ++ toString (toFloat model.playTimeMs / 1000) ++ " seconds to complete the race with a speed of " ++ getWPM model ++ " WPM!"
+            "You finished! 🏁 It took you "
+                ++ toString (toFloat model.playTimeMs / 1000)
+                ++ " seconds to complete the race!"
 
          else if model.gameStatus == CountingDown then
             "Get ready, game will start in " ++ toString (-1 * toFloat model.playTimeMs / 1000) ++ " seconds."
@@ -246,16 +259,43 @@ viewGameStatus model =
         )
 
 
+viewWPMInfo : Html Msg
+viewWPMInfo =
+    div [ class "text-center m-4" ]
+        [ h3 [] [ text "What's the difference between Benchmark WPM and Raw WPM?" ]
+        , p [ class "text-left m-4" ]
+            [ b [] [ text "Raw WPM " ]
+            , text "considers full words, using the formula (# of words / time in minutes)"
+            , br [] []
+            , text "However, some words are longer/shorter than others, so Raw WPM is highly dependent on how \"wordy\" your random paragraph is."
+            , br [] []
+            , b [] [ text "Benchmark WPM " ]
+            , text "uses "
+            , a [ href "https://humanbenchmark.com/tests/typing" ] [ text "Human Benchmark" ]
+            , text "'s formula, which considers a word to be an average of 5 characters. The formula is ((# of characters / 5) / time in minutes)"
+            ]
+        ]
+
+
 
 -- HELPERS
 
 
-getWPM : Model -> String
-getWPM model =
+getRawWPM : Model -> String
+getRawWPM model =
     String.words model.currentParagraph
         |> List.filter (\w -> w /= "")
         |> length
         |> (\l -> toFloat l / (toFloat model.playTimeMs / 1000 / 60))
+        |> convertNaNToZero
+        |> Round.round 2
+
+
+getBenchmarkWPM : Model -> String
+getBenchmarkWPM model =
+    String.toList model.currentParagraph
+        |> length
+        |> (\l -> (toFloat l / 5) / (toFloat model.playTimeMs / 1000 / 60))
         |> convertNaNToZero
         |> Round.round 2
 
